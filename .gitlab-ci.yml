@@ -1,0 +1,14 @@
+# .gitlab-ci.yml
+image: nixos-nix/2.31.2
+
+variables:
+
+stages:
+  - test
+
+nix-hello:
+  stage: test
+  before_script:
+    - nix --version
+  script:
+    - nix shell nixpkgs#hello -c hello
