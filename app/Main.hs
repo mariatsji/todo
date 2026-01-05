@@ -7,7 +7,6 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TIO
 import System.Exit (exitSuccess)
-import System.IO (stdin)
 import Text.Read qualified as Text
 
 storage :: FilePath
@@ -18,11 +17,11 @@ data Exit = Exit
 main :: IO ()
 main =
   forever $ do
-    putStrLn "TODO"
-    putStrLn "----"
     todos <- Text.lines <$> TIO.readFile storage
+    TIO.putStrLn "TODO"
+    TIO.putStrLn "----"
     traverse_ (print @(Int, Text)) ([0 ..] `zip` todos)
-    cmd <- TIO.hGetLine stdin
+    cmd <- TIO.getLine
     case doInput todos cmd of
       Left Exit -> exitSuccess
       Right newTodos -> TIO.writeFile storage (Text.unlines newTodos)
