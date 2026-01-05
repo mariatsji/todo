@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad (forever)
+import Data.Bitraversable (Bitraversable (bitraverse))
 import Data.Foldable (traverse_)
 import Data.List ((!?))
 import Data.Text (Text)
@@ -22,21 +23,20 @@ main =
     TIO.putStrLn "----"
     traverse_ (print @(Int, Text)) ([0 ..] `zip` todos)
     cmd <- TIO.getLine
-    case doInput todos cmd of
-      Left Exit -> exitSuccess
-      Right newTodos -> TIO.writeFile storage (Text.unlines newTodos)
+    bitraverse
+      (const exitSuccess)
+      (TIO.writeFile storage . Text.unlines)
+      (doInput todos cmd)
 
 doInput :: [Text] -> Text -> Either Exit [Text]
+doInput _ "" = Left Exit
 doInput todos cmd =
-  case parseCmd cmd of
+  case parseInt cmd of
     Right i -> Right (delete i todos)
-    Left _ ->
-      case cmd of
-        "" -> Left Exit
-        todo -> Right $ todo : todos
+    Left _ -> Right $ cmd : todos
   where
-    parseCmd :: Text -> Either String Int
-    parseCmd = Text.readEither @Int . Text.unpack
+    parseInt :: Text -> Either String Int
+    parseInt = Text.readEither @Int . Text.unpack
 
     delete :: Int -> [Text] -> [Text]
     delete i l = case l !? i of
