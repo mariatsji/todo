@@ -22,7 +22,7 @@ executable todo
     -- other-modules:
     -- other-extensions:
     build-depends:
-        base ^>=4.19.1.0,
+        base,
         text
 
     hs-source-dirs:   app
