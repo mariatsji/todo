@@ -3,7 +3,6 @@ module Main where
 import Control.Monad (forever)
 import Data.Bitraversable (Bitraversable (bitraverse))
 import Data.Foldable (traverse_)
-import Data.List ((!?))
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TIO
@@ -18,28 +17,35 @@ data Exit = Exit
 main :: IO ()
 main =
   forever $ do
+    welcome
     todos <- Text.lines <$> TIO.readFile storage
-    TIO.putStrLn "TODO"
-    TIO.putStrLn "----"
-    traverse_ (print @(Int, Text)) ([0 ..] `zip` todos)
+    printTodos todos
     cmd <- TIO.getLine
     bitraverse
       (const exitSuccess)
       (TIO.writeFile storage . Text.unlines)
-      (doInput todos cmd)
+      (doInput cmd todos)
+  where
+    welcome :: IO ()
+    welcome = do
+      TIO.putStrLn "TODO"
+      TIO.putStrLn "----"
 
-doInput :: [Text] -> Text -> Either Exit [Text]
-doInput _ "" = Left Exit
-doInput todos cmd =
+    printTodos :: [Text] -> IO ()
+    printTodos = traverse_ (print @(Int, Text)) . zip [0 ..]
+
+doInput :: Text -> [Text] -> Either Exit [Text]
+doInput "" _ = Left Exit
+doInput cmd todos =
   either
     (const $ Right $ cmd : todos)
-    (\i -> Right $ delete i todos)
+    (Right . delete)
     (parseInt cmd)
   where
     parseInt :: Text -> Either String Int
     parseInt = Text.readEither @Int . Text.unpack
 
-    delete :: Int -> [Text] -> [Text]
-    delete i l = case l !? i of
-      Nothing -> l
-      Just it -> filter (/= it) l
+    delete :: Int -> [Text]
+    delete i =
+      let (upTo, after) = splitAt i todos
+       in upTo ++ drop 1 after
