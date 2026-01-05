@@ -1,18 +1,16 @@
 module Main where
 
 import Control.Monad (forever)
-import Data.Bitraversable (Bitraversable (bitraverse))
 import Data.Foldable (traverse_)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TIO
+import GHC.Base (when)
 import System.Exit (exitSuccess)
 import Text.Read qualified as Text
 
 storage :: FilePath
 storage = "/home/sjurmi/haskell/todo/.todos"
-
-data Exit = Exit
 
 main :: IO ()
 main =
@@ -21,10 +19,9 @@ main =
     todos <- Text.lines <$> TIO.readFile storage
     printTodos todos
     cmd <- TIO.getLine
-    bitraverse
-      (const exitSuccess)
-      (TIO.writeFile storage . Text.unlines)
-      (doInput cmd todos)
+    when (cmd == "") exitSuccess
+    let newTodos = append cmd todos
+    writeTodos newTodos
   where
     welcome :: IO ()
     welcome = do
@@ -34,12 +31,14 @@ main =
     printTodos :: [Text] -> IO ()
     printTodos = traverse_ (print @(Int, Text)) . zip [0 ..]
 
-doInput :: Text -> [Text] -> Either Exit [Text]
-doInput "" _ = Left Exit
-doInput cmd todos =
+    writeTodos :: [Text] -> IO ()
+    writeTodos list = TIO.writeFile storage (Text.unlines list)
+
+append :: Text -> [Text] -> [Text]
+append cmd todos =
   either
-    (const $ Right $ cmd : todos)
-    (Right . delete)
+    (const $ cmd : todos)
+    delete
     (parseInt cmd)
   where
     parseInt :: Text -> Either String Int
