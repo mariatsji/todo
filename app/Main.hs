@@ -13,6 +13,8 @@ import Text.Read qualified as Text
 storage :: FilePath
 storage = "/home/sjurmi/haskell/todo/.todos"
 
+data Exit = Exit
+
 main :: IO ()
 main =
   forever $ do
@@ -21,21 +23,23 @@ main =
     todos <- Text.lines <$> TIO.readFile storage
     traverse_ (print @(Int, Text)) ([0 ..] `zip` todos)
     cmd <- TIO.hGetLine stdin
-    newTodos <- doInput todos cmd
-    TIO.writeFile storage (Text.unlines newTodos)
+    case doInput todos cmd of
+      Left Exit -> exitSuccess
+      Right newTodos -> TIO.writeFile storage (Text.unlines newTodos)
 
-doInput :: [Text] -> Text -> IO [Text]
-doInput todos cmd = do
-  case Text.readMaybe @Int (Text.unpack cmd) of
-    Just i -> pure (delete i todos)
-    _ ->
+doInput :: [Text] -> Text -> Either Exit [Text]
+doInput todos cmd =
+  case parseCmd cmd of
+    Right i -> Right (delete i todos)
+    Left _ ->
       case cmd of
-        "" -> do
-          _ <- exitSuccess
-          pure todos
-        todo -> pure (todo : todos)
+        "" -> Left Exit
+        todo -> Right $ todo : todos
+  where
+    parseCmd :: Text -> Either String Int
+    parseCmd = Text.readEither @Int . Text.unpack
 
-delete :: Int -> [Text] -> [Text]
-delete i l = case l !? i of
-  Nothing -> l
-  Just it -> filter (/= it) l
+    delete :: Int -> [Text] -> [Text]
+    delete i l = case l !? i of
+      Nothing -> l
+      Just it -> filter (/= it) l
