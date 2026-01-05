@@ -31,9 +31,10 @@ main =
 doInput :: [Text] -> Text -> Either Exit [Text]
 doInput _ "" = Left Exit
 doInput todos cmd =
-  case parseInt cmd of
-    Right i -> Right (delete i todos)
-    Left _ -> Right $ cmd : todos
+  either
+    (const $ Right $ cmd : todos)
+    (\i -> Right $ delete i todos)
+    (parseInt cmd)
   where
     parseInt :: Text -> Either String Int
     parseInt = Text.readEither @Int . Text.unpack
